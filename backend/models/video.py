@@ -7,6 +7,7 @@ class Video(Base):
     __tablename__ = "videos"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(100), index=True, nullable=False)
     youtube_id = Column(String(50), unique=True, index=True, nullable=False)
     title = Column(String(255), nullable=True)
     url = Column(String(500), nullable=False)

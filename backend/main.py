@@ -12,6 +12,18 @@ from sqlalchemy.sql import text
 try:
     logger.info("Initializing database tables...")
     Base.metadata.create_all(bind=engine)
+    
+    # Simple migration logic to ensure existing tables have user_id
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    if "videos" in inspector.get_table_names():
+        columns = [col['name'] for col in inspector.get_columns('videos')]
+        if 'user_id' not in columns:
+            logger.info("Adding missing column 'user_id' to table 'videos'...")
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE videos ADD COLUMN user_id VARCHAR(100) DEFAULT 'mock-user-123' NOT NULL"))
+            logger.info("Column 'user_id' added successfully.")
+            
     logger.info("Database tables initialized successfully.")
 except Exception as e:
     logger.error(f"Failed to auto-initialize database tables: {str(e)}")

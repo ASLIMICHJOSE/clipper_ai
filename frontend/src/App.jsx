@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Dashboard from '@/pages/Dashboard'
 import Projects from '@/pages/Projects'
@@ -7,6 +7,7 @@ import Settings from '@/pages/Settings'
 import Login from '@/pages/Login'
 import Sidebar from '@/components/Sidebar'
 import TopNav from '@/components/TopNav'
+import { supabase } from '@/services/supabase'
 
 function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
   const location = useLocation()
@@ -27,7 +28,7 @@ function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
     }
   }
 
-  // If not logged in, show Login
+  // If not logged in, redirect to login page
   if (!userEmail) {
     return <Navigate to="/login" replace />
   }
@@ -74,22 +75,55 @@ function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
 }
 
 export default function App() {
-  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('clipper_user') || '')
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [youtubeConnected, setYoutubeConnected] = useState(true)
 
-  const handleLoginSuccess = (email) => {
-    localStorage.setItem('clipper_user', email)
-    setUserEmail(email)
-  }
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
 
-  const handleLogout = () => {
-    localStorage.removeItem('clipper_user')
-    setUserEmail('')
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setLoading(false)
+    })
+
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe()
+      }
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.error('Error during signOut:', e)
+    }
+    setSession(null)
   }
 
   const handleSyncYoutube = () => {
     setYoutubeConnected(!youtubeConnected)
   }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#0C0C0D] text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-xs text-muted-foreground tracking-wider uppercase font-semibold">Loading session...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const userEmail = session?.user?.email || ''
 
   return (
     <BrowserRouter>
@@ -97,10 +131,10 @@ export default function App() {
         <Route 
           path="/login" 
           element={
-            userEmail ? (
+            session ? (
               <Navigate to="/" replace />
             ) : (
-              <Login onLoginSuccess={handleLoginSuccess} />
+              <Login />
             )
           } 
         />
