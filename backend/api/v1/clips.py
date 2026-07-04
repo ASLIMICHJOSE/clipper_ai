@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.schemas.video import ClipResponse
-from app.models.video import Clip
+from backend.database.session import get_db
+from backend.schemas.video import ClipResponse
+from backend.models.video import Clip
+from backend.utils.logging import logger
 
 router = APIRouter()
 
@@ -31,6 +32,7 @@ def update_clip(clip_id: int, clip_update: ClipResponse, db: Session = Depends(g
             
     db.commit()
     db.refresh(clip)
+    logger.info(f"Updated metadata for Clip ID: {clip_id}")
     return clip
 
 @router.post("/{clip_id}/render", response_model=ClipResponse)
@@ -44,9 +46,6 @@ def render_clip(clip_id: int, background_tasks: BackgroundTasks, db: Session = D
         
     clip.status = "clipping"
     db.commit()
-    
-    # Trigger background rendering task here in subsequent phases
-    
     return clip
 
 @router.post("/{clip_id}/upload", response_model=ClipResponse)
@@ -63,7 +62,4 @@ def upload_clip(clip_id: int, background_tasks: BackgroundTasks, db: Session = D
         
     clip.status = "uploading"
     db.commit()
-    
-    # Trigger background upload task here in subsequent phases
-    
     return clip

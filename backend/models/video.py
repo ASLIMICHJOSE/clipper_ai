@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.database import Base
+from backend.database.session import Base
 
 class Video(Base):
     __tablename__ = "videos"

@@ -1,12 +1,13 @@
 import os
+from backend.config.settings import settings
 
 class VideoDownloader:
     """
     Service class responsible for using yt-dlp to fetch YouTube video details and audio/video files.
     """
-    def __init__(self, download_dir: str = "downloads"):
-        self.download_dir = download_dir
-        os.makedirs(download_dir, exist_ok=True)
+    def __init__(self, download_dir: str = None):
+        self.download_dir = download_dir or os.path.join(settings.STORAGE_DIR, "videos")
+        os.makedirs(self.download_dir, exist_ok=True)
 
     async def get_video_info(self, url: str) -> dict:
         """

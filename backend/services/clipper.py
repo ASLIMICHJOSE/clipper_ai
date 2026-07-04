@@ -1,12 +1,13 @@
 import os
+from backend.config.settings import settings
 
 class VideoClipper:
     """
     Service class responsible for using FFmpeg to cut video segments and add stylized, animated subtitles.
     """
-    def __init__(self, output_dir: str = "clips"):
-        self.output_dir = output_dir
-        os.makedirs(output_dir, exist_ok=True)
+    def __init__(self, output_dir: str = None):
+        self.output_dir = output_dir or os.path.join(settings.STORAGE_DIR, "clips")
+        os.makedirs(self.output_dir, exist_ok=True)
 
     async def clip_video(self, source_path: str, start_time: float, end_time: float) -> str:
         """

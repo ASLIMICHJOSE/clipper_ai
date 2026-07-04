@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
-from app.database import get_db
-from app.schemas.video import VideoCreate, VideoResponse
-from app.models.video import Video
+from backend.database.session import get_db
+from backend.schemas.video import VideoCreate, VideoResponse
+from backend.models.video import Video
+from backend.utils.logging import logger
 
 router = APIRouter()
 
@@ -12,8 +13,9 @@ def import_video(video_in: VideoCreate, background_tasks: BackgroundTasks, db: S
     """
     Import a YouTube video, download it, transcribe, and analyze.
     """
-    # Parse youtube_id from URL
     url = video_in.url
+    logger.info(f"Import requested for YouTube video: {url}")
+    
     youtube_id = "extracted_id_placeholder"
     if "v=" in url:
         youtube_id = url.split("v=")[1].split("&")[0]
@@ -22,6 +24,7 @@ def import_video(video_in: VideoCreate, background_tasks: BackgroundTasks, db: S
         
     db_video = db.query(Video).filter(Video.youtube_id == youtube_id).first()
     if db_video:
+        logger.info(f"Video with YouTube ID {youtube_id} already exists.")
         return db_video
         
     new_video = Video(
@@ -34,8 +37,7 @@ def import_video(video_in: VideoCreate, background_tasks: BackgroundTasks, db: S
     db.commit()
     db.refresh(new_video)
     
-    # Trigger background processing task here in subsequent phases
-    
+    logger.info(f"Initialized project row for Video ID: {new_video.id}")
     return new_video
 
 @router.get("/", response_model=List[VideoResponse])
@@ -66,9 +68,6 @@ def analyze_video(video_id: int, background_tasks: BackgroundTasks, db: Session 
         
     video.status = "analyzing"
     db.commit()
-    
-    # Trigger background analysis task here in subsequent phases
-    
     return video
 
 @router.delete("/{video_id}")
@@ -82,4 +81,5 @@ def delete_video(video_id: int, db: Session = Depends(get_db)):
         
     db.delete(video)
     db.commit()
+    logger.info(f"Deleted Video ID: {video_id} and all related clips.")
     return {"message": "Video successfully deleted"}

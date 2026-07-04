@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.endpoints import videos, clips
+from backend.api.v1 import videos, clips
 
 api_router = APIRouter()
 
