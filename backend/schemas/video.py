@@ -31,7 +31,12 @@ class VideoBase(BaseModel):
     url: str
 
 class VideoCreate(VideoBase):
-    pass
+    thumbnail: Optional[str] = None
+    duration: Optional[int] = None
+    channel: Optional[str] = None
+    views: Optional[int] = None
+    resolution_options: Optional[str] = None
+    estimated_processing_time: Optional[int] = None
 
 class VideoResponse(BaseModel):
     id: int
@@ -40,6 +45,12 @@ class VideoResponse(BaseModel):
     url: str
     status: str
     transcript: Optional[str] = None
+    thumbnail: Optional[str] = None
+    duration: Optional[int] = None
+    channel: Optional[str] = None
+    views: Optional[int] = None
+    resolution_options: Optional[str] = None
+    estimated_processing_time: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     clips: List[ClipResponse] = []

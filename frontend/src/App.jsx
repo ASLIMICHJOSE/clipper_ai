@@ -7,6 +7,7 @@ import Settings from '@/pages/Settings'
 import Login from '@/pages/Login'
 import Sidebar from '@/components/Sidebar'
 import TopNav from '@/components/TopNav'
+import ImportVideo from '@/pages/ImportVideo'
 import { supabase } from '@/services/supabase'
 
 function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
@@ -23,6 +24,8 @@ function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
         return 'History'
       case '/settings':
         return 'Settings'
+      case '/import':
+        return 'Import Video'
       default:
         return 'Clipper AI'
     }
@@ -56,6 +59,7 @@ function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/import" element={<ImportVideo />} />
             <Route path="/history" element={<History />} />
             <Route 
               path="/settings" 

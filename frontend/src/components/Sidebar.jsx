@@ -1,6 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FolderKanban, History as HistoryIcon, Settings2, Sparkles } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, History as HistoryIcon, Settings2, Sparkles, Youtube } from 'lucide-react'
 
 export default function Sidebar({ projectsCount = 0 }) {
   return (
@@ -39,6 +39,22 @@ export default function Sidebar({ projectsCount = 0 }) {
             <div className="flex items-center gap-2.5">
               <LayoutDashboard className="h-4 w-4" />
               <span>Dashboard</span>
+            </div>
+          </NavLink>
+
+          <NavLink
+            to="/import"
+            className={({ isActive }) =>
+              `flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/10'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`
+            }
+          >
+            <div className="flex items-center gap-2.5">
+              <Youtube className="h-4 w-4" />
+              <span>Import Video</span>
             </div>
           </NavLink>
 

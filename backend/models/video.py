@@ -13,6 +13,12 @@ class Video(Base):
     url = Column(String(500), nullable=False)
     status = Column(String(50), default="pending")  # pending, downloading, transcribing, analyzing, completed, failed
     transcript = Column(Text, nullable=True)
+    thumbnail = Column(String(500), nullable=True)
+    duration = Column(Integer, nullable=True)
+    channel = Column(String(255), nullable=True)
+    views = Column(Integer, nullable=True)
+    resolution_options = Column(Text, nullable=True)
+    estimated_processing_time = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

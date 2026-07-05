@@ -24,6 +24,22 @@ try:
                 conn.execute(text("ALTER TABLE videos ADD COLUMN user_id VARCHAR(100) DEFAULT 'mock-user-123' NOT NULL"))
             logger.info("Column 'user_id' added successfully.")
             
+        # Check and add new metadata columns
+        new_cols = {
+            'thumbnail': "VARCHAR(500) NULL",
+            'duration': "INTEGER NULL",
+            'channel': "VARCHAR(255) NULL",
+            'views': "INTEGER NULL",
+            'resolution_options': "TEXT NULL",
+            'estimated_processing_time': "INTEGER NULL"
+        }
+        for col_name, col_type in new_cols.items():
+            if col_name not in columns:
+                logger.info(f"Adding missing column '{col_name}' to table 'videos'...")
+                with engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE videos ADD COLUMN {col_name} {col_type}"))
+                logger.info(f"Column '{col_name}' added successfully.")
+            
     logger.info("Database tables initialized successfully.")
 except Exception as e:
     logger.error(f"Failed to auto-initialize database tables: {str(e)}")
