@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from backend.config.settings import settings
 from backend.database.session import engine, Base, get_db
 from backend.api.router import api_router
@@ -65,6 +66,8 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
+app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
 
 # CORS configurations
 app.add_middleware(

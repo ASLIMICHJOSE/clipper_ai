@@ -42,6 +42,7 @@ def sync_video_to_supabase(video) -> None:
             "eta": video.eta,
             "file_path": video.file_path,
             "error_message": video.error_message,
+            "transcript": video.transcript,
             "audio_path": video.audio_path,
             "audio_sample_rate": video.audio_sample_rate,
             "audio_channels": video.audio_channels,

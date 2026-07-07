@@ -8,6 +8,7 @@ import Login from '@/pages/Login'
 import Sidebar from '@/components/Sidebar'
 import TopNav from '@/components/TopNav'
 import ImportVideo from '@/pages/ImportVideo'
+import Editor from '@/pages/Editor'
 import { supabase } from '@/services/supabase'
 
 function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
@@ -60,6 +61,7 @@ function AppContent({ userEmail, onLogout, youtubeConnected, onSyncYoutube }) {
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/import" element={<ImportVideo />} />
+            <Route path="/editor/:video_id" element={<Editor />} />
             <Route path="/history" element={<History />} />
             <Route 
               path="/settings" 

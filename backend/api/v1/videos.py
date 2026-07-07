@@ -123,8 +123,15 @@ async def process_video_import(video_id: int, url: str, user_id: str):
 
         from backend.services.transcriber import VideoTranscriber
         transcriber = VideoTranscriber()
-        transcript_data = await transcriber.transcribe(file_path)
+        transcript_data = await transcriber.transcribe(target_audio_path)
         
+        # Save transcript JSON locally
+        subtitles_dir = os.path.join(settings.STORAGE_DIR, "subtitles")
+        os.makedirs(subtitles_dir, exist_ok=True)
+        subtitles_path = os.path.join(subtitles_dir, f"{video.youtube_id}.json")
+        with open(subtitles_path, "w", encoding="utf-8") as f:
+            json.dump(transcript_data, f, ensure_ascii=False, indent=2)
+
         video.transcript = transcript_data.get("text")
         video.status = "analyzing"
         video.progress = 80.0
@@ -452,4 +459,110 @@ def retry_video_download(
     background_tasks.add_task(process_video_import, video.id, video.url, current_user.id)
     
     return {"message": "Retry task started successfully", "video": video}
+
+
+class TranscriptSegment(BaseModel):
+    start: float
+    end: float
+    text: str
+    speaker: str
+
+
+class TranscriptUpdateRequest(BaseModel):
+    text: str
+    segments: List[TranscriptSegment]
+
+
+@router.get("/{video_id}/transcript")
+def get_video_transcript(
+    video_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Get the transcript of a video (read from local JSON file if exists, otherwise full text from DB).
+    """
+    video = db.query(Video).filter(
+        Video.id == video_id,
+        Video.user_id == current_user.id
+    ).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+        
+    subtitles_path = os.path.join(settings.STORAGE_DIR, "subtitles", f"{video.youtube_id}.json")
+    if os.path.exists(subtitles_path):
+        try:
+            with open(subtitles_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data
+        except Exception as e:
+            logger.error(f"Failed to read local JSON subtitles: {str(e)}")
+            
+    # Fallback to database plain text transcript
+    segments = []
+    if video.transcript:
+        segments = [{
+            "start": 0.0,
+            "end": float(video.duration or 0),
+            "text": video.transcript,
+            "speaker": "Speaker 1"
+        }]
+    return {
+        "text": video.transcript or "",
+        "segments": segments
+    }
+
+
+@router.put("/{video_id}/transcript")
+def update_video_transcript(
+    video_id: int,
+    update_in: TranscriptUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Update the transcript text and segments (persisted locally as JSON and in Supabase).
+    """
+    video = db.query(Video).filter(
+        Video.id == video_id,
+        Video.user_id == current_user.id
+    ).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+        
+    # 1. Update SQLite video transcript text
+    video.transcript = update_in.text
+    db.commit()
+    db.refresh(video)
+    
+    # 2. Save transcript JSON locally
+    subtitles_dir = os.path.join(settings.STORAGE_DIR, "subtitles")
+    os.makedirs(subtitles_dir, exist_ok=True)
+    subtitles_path = os.path.join(subtitles_dir, f"{video.youtube_id}.json")
+    
+    serialized_segments = []
+    for s in update_in.segments:
+        serialized_segments.append({
+            "start": s.start,
+            "end": s.end,
+            "text": s.text,
+            "speaker": s.speaker
+        })
+        
+    data = {
+        "text": update_in.text,
+        "segments": serialized_segments
+    }
+    
+    try:
+        with open(subtitles_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save local transcript updates: {str(e)}")
+        
+    # 3. Synchronize with Supabase
+    sync_video_to_supabase(video)
+    
+    return data
+
 

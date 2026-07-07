@@ -445,10 +445,10 @@ export default function Dashboard() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-xs hover:bg-secondary"
-                            onClick={() => navigate('/projects')}
+                            className="h-7 text-xs hover:bg-secondary text-primary font-semibold"
+                            onClick={() => navigate(`/editor/${activity.id}`)}
                           >
-                            Manage
+                            Edit & Preview
                           </Button>
                         </div>
                       </td>
