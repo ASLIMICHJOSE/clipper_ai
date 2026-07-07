@@ -51,6 +51,15 @@ class VideoResponse(BaseModel):
     views: Optional[int] = None
     resolution_options: Optional[str] = None
     estimated_processing_time: Optional[int] = None
+    progress: Optional[float] = 0.0
+    speed: Optional[str] = None
+    eta: Optional[str] = None
+    file_path: Optional[str] = None
+    error_message: Optional[str] = None
+    audio_path: Optional[str] = None
+    audio_sample_rate: Optional[int] = None
+    audio_channels: Optional[int] = None
+    audio_duration: Optional[float] = None
     created_at: datetime
     updated_at: datetime
     clips: List[ClipResponse] = []

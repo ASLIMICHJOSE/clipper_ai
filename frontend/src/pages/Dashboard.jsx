@@ -3,7 +3,7 @@ import MetricCard from '@/components/MetricCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Video, Sparkles, Youtube, ListChecks, Play, RefreshCw, Loader2, ArrowRight, AlertCircle } from 'lucide-react'
+import { Video, Sparkles, Youtube, ListChecks, Play, RefreshCw, Loader2, ArrowRight, AlertCircle, XCircle, RotateCcw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '@/services/api'
 
@@ -33,10 +33,41 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData()
-    // Poll queue status every 10 seconds for real-time dashboard updates
-    const interval = setInterval(() => fetchData(), 10000)
-    return () => clearInterval(interval)
   }, [])
+
+  // Dynamic polling based on active jobs in queue
+  useEffect(() => {
+    const hasActiveJobs = videos.some(v => !['completed', 'failed', 'cancelled'].includes(v.status))
+    const intervalTime = hasActiveJobs ? 2000 : 10000
+
+    const interval = setInterval(() => {
+      fetchData()
+    }, intervalTime)
+
+    return () => clearInterval(interval)
+  }, [videos])
+
+  const handleCancel = async (videoId) => {
+    setError('')
+    try {
+      await apiClient.post(`/videos/${videoId}/cancel`)
+      fetchData()
+    } catch (err) {
+      console.error('Error cancelling download:', err)
+      setError(err.response?.data?.detail || 'Failed to cancel download.')
+    }
+  }
+
+  const handleRetry = async (videoId) => {
+    setError('')
+    try {
+      await apiClient.post(`/videos/${videoId}/retry`)
+      fetchData()
+    } catch (err) {
+      console.error('Error retrying download:', err)
+      setError(err.response?.data?.detail || 'Failed to retry download.')
+    }
+  }
 
   const handleImport = async (e) => {
     e.preventDefault()
@@ -92,19 +123,23 @@ export default function Dashboard() {
     })
 
     // Check if video is processing
-    const isVideoProcessing = !['completed', 'failed'].includes(v.status)
+    const isVideoProcessing = !['completed', 'failed', 'cancelled'].includes(v.status)
     if (isVideoProcessing) {
       activeQueueCount++
-      let progress = 10
-      if (v.status === 'downloading') progress = 35
-      else if (v.status === 'transcribing') progress = 60
-      else if (v.status === 'analyzing') progress = 85
+      let progress = v.progress || 10
+      if (v.status === 'downloading') progress = v.progress || 0
+      else if (v.status === 'extracting') progress = v.progress || 0
+      else if (v.status === 'transcribing') progress = v.progress || 50
+      else if (v.status === 'analyzing') progress = v.progress || 80
       
       activeQueueItems.push({
         id: `v-${v.id}`,
+        videoId: v.id,
         title: v.title || 'Processing Video Source...',
         progress,
         step: v.status,
+        speed: v.speed,
+        eta: v.eta,
         time: 'Active'
       })
     }
@@ -292,23 +327,39 @@ export default function Dashboard() {
               renderQueueSkeletons()
             ) : activeQueueItems.length > 0 ? (
               activeQueueItems.map((task) => (
-                <div key={task.id} className="space-y-1.5 p-3 rounded-lg bg-secondary/30 border border-border/60">
-                  <div className="flex justify-between items-center text-xs">
-                    <p className="font-semibold truncate max-w-[170px]" title={task.title}>{task.title}</p>
+                <div key={task.id} className="space-y-1.5 p-3 rounded-lg bg-secondary/30 border border-border/60 relative group/queue">
+                  <div className="flex justify-between items-center text-xs pr-6">
+                    <p className="font-semibold truncate max-w-[150px]" title={task.title}>{task.title}</p>
                     <span className="text-[9px] font-mono text-muted-foreground/80 uppercase">{task.time}</span>
                   </div>
+                  
+                  {/* Cancel Button */}
+                  {task.videoId && ['pending', 'downloading'].includes(task.step) && (
+                    <button
+                      onClick={() => handleCancel(task.videoId)}
+                      className="absolute right-2 top-2 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                      title="Cancel Download"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </button>
+                  )}
                   
                   {/* Progress bar */}
                   <div className="h-1.5 w-full bg-background/50 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-500 rounded-full"
+                      className="h-full bg-primary transition-all duration-300 rounded-full"
                       style={{ width: `${task.progress}%` }}
                     />
                   </div>
                   
                   <div className="flex justify-between items-center text-[9px] text-muted-foreground uppercase tracking-wider font-bold pt-0.5">
-                    <span>{task.step}</span>
-                    <span>{task.progress}%</span>
+                    <span>
+                      {task.step} {task.speed && `(${task.speed})`}
+                    </span>
+                    <span>
+                      {task.eta && task.eta !== 'estimating...' && `ETA: ${task.eta} • `}
+                      {task.progress}%
+                    </span>
                   </div>
                 </div>
               ))
@@ -379,14 +430,27 @@ export default function Dashboard() {
                       </td>
                       <td className="p-4 text-muted-foreground">{formatDate(activity.created_at)}</td>
                       <td className="p-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-xs hover:bg-secondary"
-                          onClick={() => navigate('/projects')}
-                        >
-                          Manage
-                        </Button>
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          {['failed', 'cancelled'].includes(activity.status) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px] font-semibold gap-1 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20"
+                              onClick={() => handleRetry(activity.id)}
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              Retry
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs hover:bg-secondary"
+                            onClick={() => navigate('/projects')}
+                          >
+                            Manage
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

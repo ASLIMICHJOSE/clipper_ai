@@ -31,7 +31,16 @@ try:
             'channel': "VARCHAR(255) NULL",
             'views': "INTEGER NULL",
             'resolution_options': "TEXT NULL",
-            'estimated_processing_time': "INTEGER NULL"
+            'estimated_processing_time': "INTEGER NULL",
+            'progress': "FLOAT DEFAULT 0.0",
+            'speed': "VARCHAR(50) NULL",
+            'eta': "VARCHAR(50) NULL",
+            'file_path': "VARCHAR(500) NULL",
+            'error_message': "TEXT NULL",
+            'audio_path': "VARCHAR(500) NULL",
+            'audio_sample_rate': "INTEGER NULL",
+            'audio_channels': "INTEGER NULL",
+            'audio_duration': "FLOAT NULL"
         }
         for col_name, col_type in new_cols.items():
             if col_name not in columns:
